@@ -13,20 +13,16 @@ class ViewController: UIViewController, ARSCNViewDelegate {
 
     @IBOutlet var sceneView: ARSCNView!
     
+    var dotNodes = [SCNNode]()
+    var textNode = SCNNode()
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         // Set the view's delegate
         sceneView.delegate = self
         
-        // Show statistics such as fps and timing information
-        sceneView.showsStatistics = true
-        
-        // Create a new scene
-        let scene = SCNScene(named: "art.scnassets/ship.scn")!
-        
-        // Set the scene to the view
-        sceneView.scene = scene
+        sceneView.debugOptions = [ARSCNDebugOptions.showFeaturePoints]
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -45,30 +41,80 @@ class ViewController: UIViewController, ARSCNViewDelegate {
         // Pause the view's session
         sceneView.session.pause()
     }
-
-    // MARK: - ARSCNViewDelegate
     
-/*
-    // Override to create and configure nodes for anchors added to the view's session.
-    func renderer(_ renderer: SCNSceneRenderer, nodeFor anchor: ARAnchor) -> SCNNode? {
-        let node = SCNNode()
-     
-        return node
-    }
-*/
-    
-    func session(_ session: ARSession, didFailWithError error: Error) {
-        // Present an error message to the user
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) 
+    {
+        if dotNodes.count >= 2
+        {
+            for dot in dotNodes
+            {
+                dot.removeFromParentNode()
+            }
+            dotNodes = [SCNNode]()
+        }
         
+        if let touchLocation = touches.first?.location(in: sceneView)
+        {
+            guard let query = sceneView.raycastQuery(from: touchLocation, allowing: .estimatedPlane, alignment: .any) else { return }
+            let results = sceneView.session.raycast(query)
+            
+            if let hitTestResult = results.first
+            {
+                addDot(at: hitTestResult)
+            }
+        }
     }
     
-    func sessionWasInterrupted(_ session: ARSession) {
-        // Inform the user that the session has been interrupted, for example, by presenting an overlay
+    func addDot(at hitResult: ARRaycastResult)
+    {
+        let dot = SCNSphere(radius: 0.005)
         
+        let materials = SCNMaterial()
+        materials.diffuse.contents = UIColor.red
+        
+        dot.materials = [materials]
+        
+        let dotNode = SCNNode(geometry: dot)
+        dotNode.position = SCNVector3(
+            x: hitResult.worldTransform.columns.3.x,
+            y: hitResult.worldTransform.columns.3.y,
+            z: hitResult.worldTransform.columns.3.z
+        )
+        
+        sceneView.scene.rootNode.addChildNode(dotNode)
+        dotNodes.append(dotNode)
+        
+        if dotNodes.count >= 2
+        {
+            calculate()
+        }
     }
     
-    func sessionInterruptionEnded(_ session: ARSession) {
-        // Reset tracking and/or remove existing anchors if consistent tracking is required
+    func calculate()
+    {
+        let startNode = dotNodes[0]
+        let endNode = dotNodes[1]
         
+        let a = endNode.position.x - startNode.position.x
+        let b = endNode.position.y - startNode.position.y
+        let c = endNode.position.z - startNode.position.z
+        
+        let distance = sqrt(pow(a, 2) + pow(b, 2) + pow(c, 2))
+        
+        updateText(text: "\(distance)m", atPosition: endNode.position)
+    }
+    
+    func updateText(text: String, atPosition position: SCNVector3)
+    {
+        textNode.removeFromParentNode()
+        
+        let textGeometry = SCNText(string: text, extrusionDepth: 1.0)
+        textGeometry.firstMaterial?.diffuse.contents = UIColor.red
+        
+        textNode = SCNNode(geometry: textGeometry)
+        textNode.position = SCNVector3(position.x, position.y + 0.01, position.z)
+        textNode.scale = SCNVector3(0.01, 0.01, 0.01)
+        
+        sceneView.scene.rootNode.addChildNode(textNode)
     }
 }
