@@ -2,6 +2,13 @@
 ## 1. Goal
 The goal of this project is to build an augmented reality (AR) app using ARKit in Swift that allows users to measure the distance between two consecutive points tapped on the screen in 3D space. The app provides an intuitive way to measure real-world distances by leveraging ARKit’s ability to detect and map the environment in real time.
 
+## Installation
+Clone the repository using git:
+```bash
+git clone https://github.com/Prajwal2212/AR-scale.git
+cd AR-scale
+```
+
 ## 2. Process
 ### 2.1. Tools and Frameworks
 #### ARKit: Apple’s framework used to track and measure 3D space using the device's camera and sensors.
